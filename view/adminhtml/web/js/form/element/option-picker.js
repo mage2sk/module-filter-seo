@@ -123,10 +123,14 @@ define([
 
         /**
          * Normalize + push options into this select's observable.
+         * Preserves the currently-selected value when the same value exists
+         * in the new options (so edit mode keeps the pre-selected option).
          *
          * @param {Array<Object>} rawOptions server items: {value, label, slug}
          */
         applyOptions: function (rawOptions) {
+            var previousValue = this.value();
+
             var meta = {};
             var normalized = rawOptions.map(function (o) {
                 var v = String(o.value);
@@ -145,7 +149,16 @@ define([
                 this.options(normalized);
             }
 
-            console.log(LOG_PREFIX, 'options observable now has', normalized.length, 'entries');
+            // If the previous value is still a valid option, re-write it so ko
+            // notifies the <select> binding and keeps the selection visible.
+            if (previousValue && meta[previousValue]) {
+                this.value(previousValue);
+                if (typeof this.value.valueHasMutated === 'function') {
+                    this.value.valueHasMutated();
+                }
+            }
+
+            console.log(LOG_PREFIX, 'options observable now has', normalized.length, 'entries, preserved value:', previousValue);
         },
 
         /**

@@ -7,6 +7,12 @@
         <item name="template" xsi:type="string">templates/form/collapsible</item>
     </argument>
     <settings>
+        <buttons>
+            <button name="back" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\BackButton"/>
+            <button name="delete" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\DeleteButton"/>
+            <button name="save" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\SaveButton"/>
+            <button name="save_and_continue" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\SaveAndContinueButton"/>
+        </buttons>
         <namespace>panth_filterseo_filterrewrite_form</namespace>
         <dataScope>data</dataScope>
         <deps>
