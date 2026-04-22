@@ -67,13 +67,40 @@ define([
         },
 
         /**
-         * Auto-fill sibling reference fields when the user picks an option.
+         * Auto-fill sibling reference fields when the user picks an option,
+         * and keep the <select> DOM in sync when the value hydrates after
+         * our options list does (or vice-versa).
          */
         bindSelfValue: function () {
             var self = this;
             this.value.subscribe(function (newVal) {
                 self.autoFillSiblings(newVal);
+                // If our options are already loaded and the just-hydrated
+                // value matches one of them, force ko to reconcile so the
+                // <select> visually shows the selection.
+                if (newVal && self.optionMeta && self.optionMeta[newVal]) {
+                    self.forceSelect(newVal);
+                }
             });
+        },
+
+        /**
+         * Force the <select> to visually reflect `value` by briefly clearing
+         * and re-writing the observable. Works around ko's optgroup binding
+         * not re-syncing when options and value update out of order.
+         *
+         * @param {String} value
+         */
+        forceSelect: function (value) {
+            var self = this;
+            // Defer so setOptions has finished updating the DOM options list.
+            setTimeout(function () {
+                if (self.value() === value) {
+                    // Toggle off-on to trigger ko re-reconcile.
+                    self.value('');
+                    self.value(value);
+                }
+            }, 0);
         },
 
         /**
@@ -152,10 +179,7 @@ define([
             // If the previous value is still a valid option, re-write it so ko
             // notifies the <select> binding and keeps the selection visible.
             if (previousValue && meta[previousValue]) {
-                this.value(previousValue);
-                if (typeof this.value.valueHasMutated === 'function') {
-                    this.value.valueHasMutated();
-                }
+                this.forceSelect(previousValue);
             }
 
             console.log(LOG_PREFIX, 'options observable now has', normalized.length, 'entries, preserved value:', previousValue);
