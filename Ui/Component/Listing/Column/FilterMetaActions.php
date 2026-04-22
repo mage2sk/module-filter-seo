@@ -85,6 +85,7 @@ class FilterMetaActions extends Column
                 $item[$name]['view'] = [
                     'href' => $viewUrl,
                     'label' => (string) __('View on Storefront'),
+                    'target' => '_blank',
                 ];
             }
 
