@@ -134,20 +134,27 @@ class ViewUrlResolver
             $storeId
         );
 
-        if (!$filterUrlsEnabled) {
-            return sprintf(
-                '%s%s%s=%d',
+        if ($filterUrlsEnabled) {
+            $cleanUrl = $this->urlBuilder->build(
                 $categoryUrl,
-                str_contains($categoryUrl, '?') ? '&' : '?',
-                rawurlencode($attributeCode),
-                $optionId
+                [['attribute_code' => $attributeCode, 'option_id' => $optionId]],
+                $storeId
             );
+            // UrlBuilder returns the unchanged category URL when no slug
+            // is defined for this store/attribute/option. In that case
+            // fall through to the native query-string form so the filter
+            // still applies on the storefront.
+            if ($cleanUrl !== $categoryUrl) {
+                return $cleanUrl;
+            }
         }
 
-        return $this->urlBuilder->build(
+        return sprintf(
+            '%s%s%s=%d',
             $categoryUrl,
-            [['attribute_code' => $attributeCode, 'option_id' => $optionId]],
-            $storeId
+            str_contains($categoryUrl, '?') ? '&' : '?',
+            rawurlencode($attributeCode),
+            $optionId
         );
     }
 
