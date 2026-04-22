@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit;
 
 use Magento\Backend\Block\Widget\Context;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use Panth\FilterSeo\Api\FilterRewriteRepositoryInterface;
 
 /**
  * @see ButtonProviderInterface
@@ -20,12 +20,12 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
 {
     /**
      * @param Context $context
-     * @param FilterRewriteRepositoryInterface $rewriteRepository
+     * @param ResourceConnection $resource
      * @param StoreManagerInterface $storeManager
      */
     public function __construct(
         Context $context,
-        private readonly FilterRewriteRepositoryInterface $rewriteRepository,
+        private readonly ResourceConnection $resource,
         private readonly StoreManagerInterface $storeManager
     ) {
         parent::__construct($context);
@@ -60,21 +60,23 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
      */
     private function resolveFrontendUrl(int $rewriteId): string
     {
-        try {
-            $row = $this->rewriteRepository->getById($rewriteId);
-        } catch (\Throwable) {
+        $connection = $this->resource->getConnection();
+        $table = $this->resource->getTableName('panth_seo_filter_rewrite');
+
+        $row = $connection->fetchRow(
+            $connection->select()->from($table)->where('rewrite_id = ?', $rewriteId)
+        );
+        if (!$row) {
             return '';
         }
 
-        $attributeCode = (string) $row->getData('attribute_code');
-        $optionId = (int) $row->getData('option_id');
-
+        $attributeCode = (string) ($row['attribute_code'] ?? '');
+        $optionId = (int) ($row['option_id'] ?? 0);
         if ($attributeCode === '' || $optionId === 0) {
             return '';
         }
 
-        $storeId = (int) $row->getData('store_id');
-
+        $storeId = (int) ($row['store_id'] ?? 0);
         try {
             $store = $storeId === 0
                 ? $this->storeManager->getDefaultStoreView()

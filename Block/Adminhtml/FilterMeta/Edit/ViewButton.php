@@ -11,11 +11,11 @@ namespace Panth\FilterSeo\Block\Adminhtml\FilterMeta\Edit;
 use Magento\Backend\Block\Widget\Context;
 use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Store\Model\StoreManagerInterface;
-use Panth\FilterSeo\Api\CategoryFilterMetaRepositoryInterface;
 use Panth\FilterSeo\Helper\Config as SeoConfig;
 use Panth\FilterSeo\Model\FilterUrl\RewriteRepository;
 use Panth\FilterSeo\Model\FilterUrl\UrlBuilder;
@@ -27,7 +27,7 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
 {
     /**
      * @param Context $context
-     * @param CategoryFilterMetaRepositoryInterface $metaRepository
+     * @param ResourceConnection $resource
      * @param CategoryRepositoryInterface $categoryRepository
      * @param StoreManagerInterface $storeManager
      * @param ScopeConfigInterface $scopeConfig
@@ -35,7 +35,7 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
      */
     public function __construct(
         Context $context,
-        private readonly CategoryFilterMetaRepositoryInterface $metaRepository,
+        private readonly ResourceConnection $resource,
         private readonly CategoryRepositoryInterface $categoryRepository,
         private readonly StoreManagerInterface $storeManager,
         private readonly ScopeConfigInterface $scopeConfig,
@@ -73,21 +73,24 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
      */
     private function resolveFrontendUrl(int $metaId): string
     {
-        try {
-            $row = $this->metaRepository->getById($metaId);
-        } catch (\Throwable) {
+        $connection = $this->resource->getConnection();
+        $table = $this->resource->getTableName('panth_seo_category_filter_meta');
+
+        $row = $connection->fetchRow(
+            $connection->select()->from($table)->where('id = ?', $metaId)
+        );
+        if (!$row) {
             return '';
         }
 
-        $categoryId = (int) $row->getData('category_id');
-        $attributeCode = (string) $row->getData('attribute_code');
-        $optionId = (int) $row->getData('option_id');
-
+        $categoryId = (int) ($row['category_id'] ?? 0);
+        $attributeCode = (string) ($row['attribute_code'] ?? '');
+        $optionId = (int) ($row['option_id'] ?? 0);
         if ($categoryId === 0 || $attributeCode === '' || $optionId === 0) {
             return '';
         }
 
-        $storeId = (int) $row->getData('store_id');
+        $storeId = (int) ($row['store_id'] ?? 0);
         if ($storeId === 0) {
             try {
                 $default = $this->storeManager->getDefaultStoreView();
