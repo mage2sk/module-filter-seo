@@ -1,11 +1,15 @@
 /**
- * Panth Filter SEO — dynamic option picker for Filter URL Rewrite /
+ * Panth Filter SEO — dynamic option picker for the Filter URL Rewrite and
  * Filter Page Meta admin forms.
  *
- * Watches the sibling `attribute_code` field. When its value changes,
- * fetches the attribute's options via AJAX and rebuilds this select's
- * option list. Auto-fills sibling `option_label` and `rewrite_slug`
- * fields when they exist and are empty.
+ * Extends Magento_Ui/js/form/element/select. Watches the sibling
+ * `attribute_code` field and fetches that attribute's options via AJAX,
+ * then rebuilds this select's option list. Auto-fills `option_label` and
+ * `rewrite_slug` siblings when present. Preserves the form-hydrated value
+ * across the async options load so edit forms render with the previously
+ * saved option pre-selected.
+ *
+ * @api
  */
 define([
     'Magento_Ui/js/form/element/select',
@@ -15,241 +19,259 @@ define([
 ], function (Select, $, urlBuilder, registry) {
     'use strict';
 
-    var LOG_PREFIX = '[Panth_FilterSeo option-picker]';
-
     return Select.extend({
         defaults: {
-            optionsEndpoint: 'panth_filterseo/filterrewrite/options',
+            optionsEndpoint: '',
             cachedOptions: {},
-            optionMeta: {},
-            // Placeholder shown before an attribute is picked.
-            caption: ' '
+            optionMeta: {}
         },
 
         /**
-         * Subscribe to the sibling attribute_code field and load options for
-         * its current value. Uses registry.async so subscription is deferred
-         * until the sibling field is registered.
+         * Wire up listeners for the sibling attribute_code field and this
+         * component's own value observable. Called once per component.
          *
-         * @returns {Object}
+         * @returns {Object} this
          */
         initialize: function () {
             this._super();
             this.bindToAttribute();
             this.bindSelfValue();
+
             return this;
         },
 
         /**
-         * Override the parent Magento_Ui/js/form/element/select's
-         * validateInitialValue() which clears the value observable whenever
-         * the initial value is not in the options array. Our options array
-         * is empty at init time (it gets populated via AJAX after the
-         * sibling attribute_code field is read) — without this override the
-         * form-provider-hydrated value (e.g. "18") would be wiped to ''
-         * before our applyOptions runs, and the <select> would never show
-         * the previously saved option.
+         * The parent Magento_Ui/js/form/element/select#validateInitialValue
+         * clears the value observable when the initial value is absent from
+         * the options list. Our options are populated asynchronously after
+         * the sibling attribute_code field is resolved, so at init time the
+         * options list is empty and the parent implementation would always
+         * wipe a valid form-hydrated value (e.g. an edit-mode option_id).
          *
-         * @returns {Object}
+         * Override to a no-op; the validation that would have happened at
+         * init time is deferred to {@link #validateAgainstOptions} which is
+         * invoked by {@link #applyOptions} after the AJAX response is
+         * processed.
+         *
+         * @returns {Object} this
          */
         validateInitialValue: function () {
-            console.log(LOG_PREFIX, 'validateInitialValue: preserving initial value', this.value());
             return this;
         },
 
         /**
-         * Subscribe to the sibling attribute_code field.
+         * Subscribe to the sibling attribute_code field. Loads the initial
+         * option list and re-loads on every subsequent attribute change.
+         *
+         * @returns {void}
          */
         bindToAttribute: function () {
             var self = this;
-            var path = this.parentName + '.attribute_code';
 
-            registry.async(path)(function (field) {
+            registry.async(this.parentName + '.attribute_code')(function (field) {
                 if (!field) {
-                    console.warn(LOG_PREFIX, 'attribute_code field not found at', path);
                     return;
                 }
-                var initial = field.value();
-                console.log(LOG_PREFIX, 'bound to', path, 'initial value:', initial);
 
-                if (initial) {
-                    self.loadOptions(initial);
+                if (field.value()) {
+                    self.loadOptions(field.value());
                 }
 
-                field.value.subscribe(function (newCode) {
-                    console.log(LOG_PREFIX, 'attribute_code changed →', newCode);
-                    self.loadOptions(newCode);
+                field.value.subscribe(function (code) {
+                    self.loadOptions(code);
                 });
             });
         },
 
         /**
-         * Auto-fill sibling reference fields when the user picks an option,
-         * and keep the <select> DOM in sync when the value hydrates after
-         * our options list does (or vice-versa).
+         * Subscribe to this component's value observable so sibling
+         * reference fields (option_label, rewrite_slug) auto-fill when the
+         * user picks an option, and so the <select> DOM reconciles when
+         * the value hydrates after the options load.
+         *
+         * @returns {void}
          */
         bindSelfValue: function () {
             var self = this;
-            this.value.subscribe(function (newVal) {
-                console.log(LOG_PREFIX, 'self.value changed →', JSON.stringify(newVal));
 
-                // Avoid recursion from forceSelect's toggle.
+            this.value.subscribe(function (value) {
                 if (self._isForcing) {
                     return;
                 }
 
-                self.autoFillSiblings(newVal);
+                self.autoFillSiblings(value);
 
-                if (newVal && self.optionMeta && self.optionMeta[String(newVal)]) {
-                    console.log(LOG_PREFIX, 'value in optionMeta → force select');
-                    self.forceSelect(String(newVal));
+                if (value && self.optionMeta[String(value)]) {
+                    self.forceSelect(String(value));
                 }
             });
         },
 
         /**
-         * Force the <select> to visually reflect `value` by briefly clearing
-         * and re-writing the observable. Works around ko's optgroup binding
-         * not re-syncing when options and value update out of order.
+         * Fetch the attribute's options from the admin AJAX endpoint
+         * (cached per attribute_code) and apply them to this select.
          *
-         * @param {String} value
-         */
-        forceSelect: function (value) {
-            var self = this;
-            setTimeout(function () {
-                if (String(self.value()) !== String(value)) {
-                    return;
-                }
-                self._isForcing = true;
-                self.value('');
-                self.value(value);
-                self._isForcing = false;
-                console.log(LOG_PREFIX, 'forceSelect committed:', value);
-            }, 0);
-        },
-
-        /**
-         * Poll briefly after options are loaded in case the form data
-         * provider hydrates the value observable later than the AJAX that
-         * fetched the options. If the ko value.subscribe above catches the
-         * update first this loop exits on the first tick.
-         */
-        pollForValueAfterOptions: function () {
-            var self = this;
-            var attempts = 0;
-            var maxAttempts = 20;
-            var tick = function () {
-                attempts++;
-                var v = self.value();
-                if (v && self.optionMeta && self.optionMeta[String(v)]) {
-                    console.log(LOG_PREFIX, 'poll tick', attempts, '— value now', v, ', forcing select');
-                    self.forceSelect(String(v));
-                    return;
-                }
-                if (attempts < maxAttempts) {
-                    setTimeout(tick, 100);
-                }
-            };
-            setTimeout(tick, 50);
-        },
-
-        /**
-         * Fetch (or reuse cached) options for the given attribute and apply.
-         *
-         * @param {String} code
+         * @param {String} code attribute_code
+         * @returns {void}
          */
         loadOptions: function (code) {
             var self = this;
 
             if (!code) {
-                self.applyOptions([]);
+                this.applyOptions([]);
                 return;
             }
 
-            if (self.cachedOptions[code]) {
-                self.applyOptions(self.cachedOptions[code]);
+            if (this.cachedOptions[code]) {
+                this.applyOptions(this.cachedOptions[code]);
                 return;
             }
 
-            // When `optionsEndpoint` is provided as a pre-built URL via the
-            // ui_component XML (xsi:type="url"), use it as-is. Otherwise
-            // fall back to mage/url which will not include the admin secret
-            // key and will be rejected by backend auth.
-            var url = self.optionsEndpoint && self.optionsEndpoint.indexOf('://') !== -1
-                ? self.optionsEndpoint
-                : urlBuilder.build(self.optionsEndpoint);
-
-            console.log(LOG_PREFIX, 'AJAX', url, 'attribute_code=' + code);
+            if (!this.optionsEndpoint) {
+                return;
+            }
 
             $.ajax({
-                url: url,
+                url: this.optionsEndpoint,
                 method: 'GET',
-                data: { attribute_code: code, form_key: window.FORM_KEY },
+                data: {
+                    attribute_code: code,
+                    form_key: window.FORM_KEY
+                },
                 dataType: 'json',
                 showLoader: true
             }).done(function (response) {
-                var opts = (response && Array.isArray(response.options)) ? response.options : [];
-                console.log(LOG_PREFIX, 'received', opts.length, 'options');
-                self.cachedOptions[code] = opts;
-                self.applyOptions(opts);
-            }).fail(function (jqxhr, textStatus, errorThrown) {
-                console.error(LOG_PREFIX, 'AJAX failed:', textStatus, errorThrown);
-                self.applyOptions([]);
+                var options = (response && Array.isArray(response.options))
+                    ? response.options
+                    : [];
+
+                self.cachedOptions[code] = options;
+                self.applyOptions(options);
             });
         },
 
         /**
-         * Normalize + push options into this select's observable.
-         * Preserves the currently-selected value when the same value exists
-         * in the new options (so edit mode keeps the pre-selected option).
+         * Normalize the server response into the `{value, label}` shape
+         * Magento's select component expects, push into the options
+         * observable, and reconcile the currently-selected value.
          *
-         * @param {Array<Object>} rawOptions server items: {value, label, slug}
+         * @param {Array<Object>} rawOptions
+         * @returns {void}
          */
         applyOptions: function (rawOptions) {
             var previousValue = this.value();
-
             var meta = {};
-            var normalized = rawOptions.map(function (o) {
-                var v = String(o.value);
-                meta[v] = o;
-                return { value: v, label: o.label + ' (' + v + ')' };
+            var normalized = rawOptions.map(function (item) {
+                var value = String(item.value);
+                meta[value] = item;
+                return {
+                    value: value,
+                    label: item.label + ' (' + value + ')'
+                };
             });
 
             this.optionMeta = meta;
+            this.setOptions(normalized);
+            this.options(normalized);
 
-            if (typeof this.setOptions === 'function') {
-                this.setOptions(normalized);
-            }
-            // Belt + braces: also write the observable directly in case
-            // setOptions implementation did not trigger a ko re-render.
-            if (typeof this.options === 'function') {
-                this.options(normalized);
-            }
-
-            // If the previous value is still a valid option, re-write it so ko
-            // notifies the <select> binding and keeps the selection visible.
             if (previousValue && meta[String(previousValue)]) {
                 this.forceSelect(String(previousValue));
             } else {
-                // Value may hydrate after options. Poll briefly.
-                this.pollForValueAfterOptions();
+                // Value may hydrate from the form DataProvider after the
+                // AJAX that loaded options. Poll briefly so the selection
+                // still appears once hydration completes.
+                this.pollForHydratedValue();
             }
 
-            console.log(LOG_PREFIX, 'options observable now has', normalized.length, 'entries, preserved value:', previousValue);
+            this.validateAgainstOptions();
         },
 
         /**
-         * Fill option_label + rewrite_slug when the user picks an option.
+         * Apply the validation the parent class would have run at init
+         * time: clear the value observable when the current value is not
+         * present in the current options list. Runs after the options are
+         * populated so a form-hydrated value is not incorrectly wiped.
+         *
+         * @returns {void}
+         */
+        validateAgainstOptions: function () {
+            var value = this.value();
+            if (value && !this.optionMeta[String(value)]) {
+                this.value('');
+            }
+        },
+
+        /**
+         * Poll this.value() every 100ms for up to 2s. Exits as soon as
+         * the value observable contains a key present in optionMeta — the
+         * usual case is the form DataProvider hydrating option_id after
+         * the AJAX options response returned.
+         *
+         * @returns {void}
+         */
+        pollForHydratedValue: function () {
+            var self = this;
+            var attempts = 0;
+            var maxAttempts = 20;
+
+            var tick = function () {
+                attempts++;
+
+                var value = self.value();
+                if (value && self.optionMeta[String(value)]) {
+                    self.forceSelect(String(value));
+                    return;
+                }
+
+                if (attempts < maxAttempts) {
+                    setTimeout(tick, 100);
+                }
+            };
+
+            setTimeout(tick, 50);
+        },
+
+        /**
+         * Force the rendered <select> to reflect the given value. Knockout's
+         * optgroup binding does not always reconcile the DOM when both the
+         * options array and the value observable update in the same tick,
+         * so this helper toggles value '' → value to fire a new mutation.
+         *
+         * Guarded by `_isForcing` to prevent the value subscription from
+         * recursing back into forceSelect on the second write.
          *
          * @param {String} value
+         * @returns {void}
+         */
+        forceSelect: function (value) {
+            var self = this;
+
+            setTimeout(function () {
+                if (String(self.value()) !== String(value)) {
+                    return;
+                }
+
+                self._isForcing = true;
+                self.value('');
+                self.value(value);
+                self._isForcing = false;
+            }, 0);
+        },
+
+        /**
+         * When the user picks an option, auto-fill the sibling reference
+         * fields (option_label, rewrite_slug) if they are empty. The user
+         * may still edit those values before saving.
+         *
+         * @param {String} value
+         * @returns {void}
          */
         autoFillSiblings: function (value) {
-            var meta = value && this.optionMeta[value];
+            var meta = value && this.optionMeta[String(value)];
             if (!meta) {
                 return;
             }
 
-            var self = this;
             var parent = this.parentName;
 
             registry.async(parent + '.option_label')(function (field) {
