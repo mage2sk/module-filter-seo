@@ -49,7 +49,7 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
         return [
             'label' => __('View on Storefront'),
             'class' => 'view',
-            'on_click' => sprintf("window.open('%s', '_blank');", $url),
+            'on_click' => sprintf("window.open('%s', '_blank'); return false;", $url),
             'sort_order' => 15,
         ];
     }
