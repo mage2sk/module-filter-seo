@@ -10,6 +10,7 @@
         <buttons>
             <button name="back" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\BackButton"/>
             <button name="delete" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\DeleteButton"/>
+            <button name="view" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\ViewButton"/>
             <button name="save" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\SaveButton"/>
             <button name="save_and_continue" class="Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit\SaveAndContinueButton"/>
         </buttons>
