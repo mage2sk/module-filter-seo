@@ -1,9 +1,9 @@
 /**
  * Panth Filter SEO — dynamic option picker for the Filter URL Rewrite form.
  *
- * Fetches the selected attribute's options from the admin AJAX endpoint and
- * populates this select's option list. Also auto-fills the sibling
- * `option_label` and `rewrite_slug` fields when the user picks a value.
+ * Watches the sibling `attribute_code` field and fetches that attribute's
+ * options (value + label + slug) from the admin AJAX endpoint. Auto-fills
+ * `option_label` and `rewrite_slug` when the user picks an option.
  */
 define([
     'Magento_Ui/js/form/element/select',
@@ -15,43 +15,56 @@ define([
 
     return Select.extend({
         defaults: {
-            cachedOptions: {},
             optionsEndpoint: 'panth_filterseo/filterrewrite/options',
-            listens: {
-                '${ $.provider }:data.attribute_code': 'onAttributeChange',
-                value: 'onValueChange'
-            },
-            imports: {
-                initialAttributeCode: '${ $.provider }:data.attribute_code'
-            },
-            modules: {
-                optionLabelField: '${ $.parentName }.option_label',
-                rewriteSlugField: '${ $.parentName }.rewrite_slug'
-            }
+            cachedOptions: {},
+            optionMeta: {}
         },
 
         /**
-         * On init, if the form already has an attribute_code (edit mode),
-         * fetch options for it.
+         * @returns {Object}
          */
         initialize: function () {
             this._super();
-            if (this.initialAttributeCode) {
-                this.loadOptionsFor(this.initialAttributeCode, false);
-            }
+            this.bindToAttributeField();
+            this.bindSelfValueChange();
             return this;
         },
 
         /**
-         * @param {String} code — new attribute_code selection
+         * Subscribe to the sibling attribute_code field — load on change, and
+         * trigger an initial load if a value is already present (edit mode).
          */
-        onAttributeChange: function (code) {
-            this.value('');
-            this.loadOptionsFor(code, true);
+        bindToAttributeField: function () {
+            var self = this;
+
+            registry.get(this.parentName + '.attribute_code', function (field) {
+                if (!field) {
+                    return;
+                }
+
+                var current = field.value();
+                if (current) {
+                    self.loadOptionsFor(current, false);
+                }
+
+                field.value.subscribe(function (newCode) {
+                    self.loadOptionsFor(newCode, true);
+                });
+            });
         },
 
         /**
-         * Fetch options for `code` from cache or AJAX and update the select.
+         * When this select's value changes, auto-fill sibling reference fields
+         * if they are empty.
+         */
+        bindSelfValueChange: function () {
+            var self = this;
+            this.value.subscribe(function (newVal) {
+                self.autoFillSiblings(newVal);
+            });
+        },
+
+        /**
          * @param {String} code
          * @param {Boolean} clearSiblings
          */
@@ -64,7 +77,7 @@ define([
             }
 
             if (self.cachedOptions[code]) {
-                self.applyOptions(self.cachedOptions[code]);
+                self.applyOptions(self.cachedOptions[code], clearSiblings);
                 return;
             }
 
@@ -77,58 +90,73 @@ define([
             }).done(function (response) {
                 var options = (response && Array.isArray(response.options)) ? response.options : [];
                 self.cachedOptions[code] = options;
-                self.applyOptions(options);
-                if (clearSiblings) {
-                    self.clearSiblingFields();
-                }
+                self.applyOptions(options, clearSiblings);
             }).fail(function () {
                 self.setOptions([]);
             });
         },
 
         /**
-         * @param {Array} options — server response items: {value, label, slug}
+         * Apply options received from server to this select.
+         *
+         * @param {Array} options
+         * @param {Boolean} clearSiblings
          */
-        applyOptions: function (options) {
-            var cache = {};
+        applyOptions: function (options, clearSiblings) {
+            var meta = {};
             var normalized = options.map(function (o) {
-                cache[String(o.value)] = o;
-                return { value: String(o.value), label: o.label + ' (' + o.value + ')' };
+                var value = String(o.value);
+                meta[value] = o;
+                return { value: value, label: o.label + ' (' + value + ')' };
             });
-            this._optionMeta = cache;
+
+            this.optionMeta = meta;
             this.setOptions(normalized);
+
+            if (clearSiblings) {
+                this.clearSiblings();
+                this.value('');
+            }
         },
 
         /**
-         * When user picks an option, auto-fill sibling fields.
          * @param {String} value
          */
-        onValueChange: function (value) {
-            if (!value || !this._optionMeta || !this._optionMeta[value]) {
+        autoFillSiblings: function (value) {
+            if (!value || !this.optionMeta[value]) {
                 return;
             }
 
-            var meta = this._optionMeta[value];
-
-            this.optionLabelField(function (field) {
-                if (field && !field.value()) {
-                    field.value(meta.label);
-                }
-            });
-
-            this.rewriteSlugField(function (field) {
-                if (field && !field.value()) {
-                    field.value(meta.slug);
-                }
-            });
+            var meta = this.optionMeta[value];
+            this.setSiblingValue('option_label', meta.label);
+            this.setSiblingValue('rewrite_slug', meta.slug);
         },
 
         /**
-         * Clear option_label and rewrite_slug when attribute changes.
+         * Clear the reference fields when the attribute changes.
          */
-        clearSiblingFields: function () {
-            this.optionLabelField(function (field) { if (field) { field.value(''); }});
-            this.rewriteSlugField(function (field) { if (field) { field.value(''); }});
+        clearSiblings: function () {
+            this.setSiblingValue('option_label', '', true);
+            this.setSiblingValue('rewrite_slug', '', true);
+        },
+
+        /**
+         * Set a sibling field's value. Only overwrites non-empty values when force=true.
+         *
+         * @param {String} name
+         * @param {String} newValue
+         * @param {Boolean} force
+         */
+        setSiblingValue: function (name, newValue, force) {
+            var self = this;
+            registry.get(this.parentName + '.' + name, function (field) {
+                if (!field) {
+                    return;
+                }
+                if (force || !field.value()) {
+                    field.value(newValue);
+                }
+            });
         }
     });
 });
