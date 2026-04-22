@@ -46,10 +46,15 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
             return [];
         }
 
+        // Same-tab navigation (mirrors BackButton's pattern). Reliable
+        // across Magento's UI-component button rendering, which wraps
+        // the button in a knockout click binding that sometimes swallows
+        // preventDefault and re-submits the form. The admin user can
+        // middle-click / cmd-click if they want a new tab.
         return [
             'label' => __('View on Storefront'),
             'class' => 'view',
-            'on_click' => sprintf("window.open('%s', '_blank'); return false;", $url),
+            'on_click' => sprintf("setLocation('%s');", $url),
             'sort_order' => 15,
         ];
     }
