@@ -105,6 +105,12 @@ class MetaInjector
         if ($appliedTitle === null && $this->isInjectFilterInTitleEnabled($storeId)) {
             $this->appendFiltersToTitle($pageConfig, $activeFilters);
         }
+
+        // If inject_filter_in_description is enabled and no specific description
+        // override was found, append filter labels to the existing meta description.
+        if ($appliedDescription === null && $this->isInjectFilterInDescriptionEnabled($storeId)) {
+            $this->appendFiltersToDescription($pageConfig, $activeFilters);
+        }
     }
 
     /**
@@ -187,6 +193,60 @@ class MetaInjector
     {
         return $this->scopeConfig->isSetFlag(
             Config::XML_FILTER_META_INJECT_TITLE,
+            ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+    }
+
+    /**
+     * Append active filter labels to the existing meta description.
+     *
+     * Result example: "Shop trendy tops for women. | Color: Red, Size: XL"
+     *
+     * @param PageConfig $pageConfig
+     * @param array<string, string> $activeFilters
+     * @return void
+     */
+    private function appendFiltersToDescription(PageConfig $pageConfig, array $activeFilters): void
+    {
+        $parts = [];
+        try {
+            $layer = $this->layerResolver->get();
+            foreach ($layer->getState()->getFilters() as $filterItem) {
+                $code = $filterItem->getFilter()->getRequestVar();
+                if (isset($activeFilters[$code])) {
+                    $filterName = $filterItem->getFilter()->getName();
+                    $label = $filterItem->getLabel();
+                    $parts[] = $filterName . ': ' . $label;
+                }
+            }
+        } catch (\Throwable) {
+            foreach ($activeFilters as $code => $value) {
+                $parts[] = ucfirst($code) . ': ' . $value;
+            }
+        }
+
+        if (empty($parts)) {
+            return;
+        }
+
+        $currentDescription = (string) $pageConfig->getDescription();
+        $suffix = implode(', ', $parts);
+        $pageConfig->setDescription(
+            $currentDescription !== ''
+                ? $currentDescription . ' | ' . $suffix
+                : $suffix
+        );
+    }
+
+    /**
+     * @param int|null $storeId
+     * @return bool
+     */
+    private function isInjectFilterInDescriptionEnabled(?int $storeId): bool
+    {
+        return $this->scopeConfig->isSetFlag(
+            Config::XML_FILTER_META_INJECT_DESCRIPTION,
             ScopeInterface::SCOPE_STORE,
             $storeId
         );
