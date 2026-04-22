@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Interface bindings: repository preferences -->
+    <preference for="Panth\FilterSeo\Api\FilterRewriteRepositoryInterface"
+                type="Panth\FilterSeo\Model\FilterRewrite\Repository"/>
+    <preference for="Panth\FilterSeo\Api\CategoryFilterMetaRepositoryInterface"
+                type="Panth\FilterSeo\Model\CategoryFilterMeta\Repository"/>
+
+    <!-- FilterRouter: intercept filter-friendly URLs and resolve them. Must run
+         after the standard URL rewrite router (sortOrder 20) but before the
+         default/CMS router (sortOrder 60). -->
+    <type name="Magento\Framework\App\RouterList">
+        <arguments>
+            <argument name="routerList" xsi:type="array">
+                <item name="panth_filterseo_filter" xsi:type="array">
+                    <item name="class" xsi:type="string">Panth\FilterSeo\Controller\Router\FilterRouter</item>
+                    <item name="disable" xsi:type="boolean">false</item>
+                    <item name="sortOrder" xsi:type="string">22</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Grid collections: table + resource model binding -->
+    <type name="Panth\FilterSeo\Model\ResourceModel\FilterRewrite\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">panth_seo_filter_rewrite</argument>
+            <argument name="resourceModel" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\FilterRewrite</argument>
+        </arguments>
+    </type>
+    <type name="Panth\FilterSeo\Model\ResourceModel\CategoryFilterMeta\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">panth_seo_category_filter_meta</argument>
+            <argument name="resourceModel" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\CategoryFilterMeta</argument>
+        </arguments>
+    </type>
+
+    <!-- Data Provider Configuration: register grid data sources -->
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="panth_filterseo_filterrewrite_listing_data_source" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\FilterRewrite\Grid\Collection</item>
+                <item name="panth_filterseo_filter_meta_listing_data_source" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\CategoryFilterMeta\Grid\Collection</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

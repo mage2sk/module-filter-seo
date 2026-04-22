@@ -1,0 +1,40 @@
+{
+    "panth_seo_filter_rewrite": {
+        "column": {
+            "rewrite_id": true,
+            "attribute_code": true,
+            "option_id": true,
+            "option_label": true,
+            "rewrite_slug": true,
+            "store_id": true,
+            "is_active": true
+        },
+        "index": {
+            "PANTH_SEO_FILTER_REWRITE_IDX_STORE": true,
+            "PANTH_SEO_FILTER_REWRITE_STORE_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "PANTH_SEO_FILTER_REWRITE_UNQ": true,
+            "PANTH_SEO_FILTER_REWRITE_ATTRIBUTE_CODE_OPTION_ID_STORE_ID": true
+        }
+    },
+    "panth_seo_category_filter_meta": {
+        "column": {
+            "id": true,
+            "category_id": true,
+            "attribute_code": true,
+            "option_id": true,
+            "store_id": true,
+            "meta_title": true,
+            "meta_description": true,
+            "meta_keywords": true,
+            "breadcrumbs_priority": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "PANTH_SEO_CAT_FILTER_META_UNQ": true,
+            "PANTH_SEO_CTGR_FILTER_META_CTGR_ID_ATTR_CODE_OPT_ID_STORE_ID": true
+        }
+    }
+}

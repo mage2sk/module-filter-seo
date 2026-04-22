@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="panth" translate="label" sortOrder="100">
+            <label>Panth Infotech</label>
+        </tab>
+        <section id="panth_filter_seo" translate="label" sortOrder="85" showInDefault="1" showInWebsite="1" showInStore="1">
+            <class>separator-top</class>
+            <label>Filter SEO</label>
+            <tab>panth</tab>
+            <resource>Panth_FilterSeo::filter</resource>
+
+            <group id="filter_urls" translate="label" sortOrder="45" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Filter URL Rewrites</label>
+                <field id="filter_urls_enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable SEO-Friendly Filter URLs</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Rewrites layered navigation filter URLs from query strings to clean path-based URLs. Requires reindex after enabling.</comment>
+                </field>
+                <field id="url_format" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>URL Format</label>
+                    <source_model>Panth\FilterSeo\Model\Config\Source\FilterUrlFormat</source_model>
+                    <comment>Short format uses compact paths; long format includes attribute codes in the URL for clarity.</comment>
+                </field>
+                <field id="separator" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Separator Character</label>
+                    <comment>Character used to separate filter values in the URL.</comment>
+                </field>
+            </group>
+
+            <group id="filter_meta" translate="label" sortOrder="46" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Filter Page Meta</label>
+                <field id="filter_meta_enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Filter Page Meta Override</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Dynamically adjusts meta title and description on filtered category pages to include the active filter values.</comment>
+                </field>
+                <field id="inject_filter_in_title" translate="label comment" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Inject Filter Name in Meta Title</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Appends active filter labels (e.g. "Red, Size M") to the category meta title on filtered pages.</comment>
+                </field>
+                <field id="inject_filter_in_description" translate="label comment" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Inject Filter Name in Meta Description</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Appends active filter labels to the category meta description on filtered pages.</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

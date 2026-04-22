@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Panth_FilterSeo::root"
+             title="Filter SEO"
+             module="Panth_FilterSeo"
+             parent="Panth_Core::panth_extensions"
+             sortOrder="16"
+             resource="Panth_FilterSeo::filter"/>
+
+        <add id="Panth_FilterSeo::filter_rewrite"
+             title="Filter URL Rewrites"
+             module="Panth_FilterSeo"
+             parent="Panth_FilterSeo::root"
+             sortOrder="10"
+             action="panth_filterseo/filterrewrite/index"
+             resource="Panth_FilterSeo::filter_rewrite"/>
+
+        <add id="Panth_FilterSeo::filter_meta"
+             title="Filter Page Meta"
+             module="Panth_FilterSeo"
+             parent="Panth_FilterSeo::root"
+             sortOrder="20"
+             action="panth_filterseo/filtermeta/index"
+             resource="Panth_FilterSeo::filter_meta"/>
+    </menu>
+</config>

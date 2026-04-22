@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<!--
+  Frontend-only DI: these plugins ONLY load on storefront requests.
+  They are NEVER instantiated on admin, API, or cron requests. This prevents
+  session/form-key issues in the admin panel and avoids bootstrapping catalog
+  layer resolvers on non-frontend contexts.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Filter item plugins: rewrite layered navigation URLs to SEO-friendly paths -->
+    <type name="Magento\Catalog\Model\Layer\Filter\Item">
+        <plugin name="panth_filterseo_filter_item_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\FilterItemUrlPlugin"
+                sortOrder="10"/>
+        <plugin name="panth_filterseo_filter_item_remove_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\FilterItemRemoveUrlPlugin"
+                sortOrder="20"/>
+    </type>
+
+    <!-- Swatch filter URL plugin -->
+    <type name="Magento\Swatches\Block\LayeredNavigation\RenderLayered">
+        <plugin name="panth_filterseo_swatch_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\SwatchUrlPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Pager URL plugin: preserve SEO-friendly filter URLs in pagination -->
+    <type name="Magento\Theme\Block\Html\Pager">
+        <plugin name="panth_filterseo_pager_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\PagerPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Category view meta injection: overrides meta title/description when filters are active -->
+    <type name="Magento\Catalog\Controller\Category\View">
+        <plugin name="panth_filterseo_filter_meta_category"
+                type="Panth\FilterSeo\Plugin\FilterMeta\CategoryViewPlugin"
+                sortOrder="15"/>
+    </type>
+</config>

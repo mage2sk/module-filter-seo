@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <panth_filter_seo>
+            <filter_urls>
+                <filter_urls_enabled>0</filter_urls_enabled>
+                <url_format>short</url_format>
+                <separator>-</separator>
+            </filter_urls>
+            <filter_meta>
+                <filter_meta_enabled>0</filter_meta_enabled>
+                <inject_filter_in_title>1</inject_filter_in_title>
+                <inject_filter_in_description>1</inject_filter_in_description>
+            </filter_meta>
+        </panth_filter_seo>
+    </default>
+</config>
