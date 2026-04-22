@@ -74,12 +74,18 @@ define([
         bindSelfValue: function () {
             var self = this;
             this.value.subscribe(function (newVal) {
+                console.log(LOG_PREFIX, 'self.value changed →', JSON.stringify(newVal));
+
+                // Avoid recursion from forceSelect's toggle.
+                if (self._isForcing) {
+                    return;
+                }
+
                 self.autoFillSiblings(newVal);
-                // If our options are already loaded and the just-hydrated
-                // value matches one of them, force ko to reconcile so the
-                // <select> visually shows the selection.
-                if (newVal && self.optionMeta && self.optionMeta[newVal]) {
-                    self.forceSelect(newVal);
+
+                if (newVal && self.optionMeta && self.optionMeta[String(newVal)]) {
+                    console.log(LOG_PREFIX, 'value in optionMeta → force select');
+                    self.forceSelect(String(newVal));
                 }
             });
         },
@@ -93,14 +99,41 @@ define([
          */
         forceSelect: function (value) {
             var self = this;
-            // Defer so setOptions has finished updating the DOM options list.
             setTimeout(function () {
-                if (self.value() === value) {
-                    // Toggle off-on to trigger ko re-reconcile.
-                    self.value('');
-                    self.value(value);
+                if (String(self.value()) !== String(value)) {
+                    return;
                 }
+                self._isForcing = true;
+                self.value('');
+                self.value(value);
+                self._isForcing = false;
+                console.log(LOG_PREFIX, 'forceSelect committed:', value);
             }, 0);
+        },
+
+        /**
+         * Poll briefly after options are loaded in case the form data
+         * provider hydrates the value observable later than the AJAX that
+         * fetched the options. If the ko value.subscribe above catches the
+         * update first this loop exits on the first tick.
+         */
+        pollForValueAfterOptions: function () {
+            var self = this;
+            var attempts = 0;
+            var maxAttempts = 20;
+            var tick = function () {
+                attempts++;
+                var v = self.value();
+                if (v && self.optionMeta && self.optionMeta[String(v)]) {
+                    console.log(LOG_PREFIX, 'poll tick', attempts, '— value now', v, ', forcing select');
+                    self.forceSelect(String(v));
+                    return;
+                }
+                if (attempts < maxAttempts) {
+                    setTimeout(tick, 100);
+                }
+            };
+            setTimeout(tick, 50);
         },
 
         /**
@@ -178,8 +211,11 @@ define([
 
             // If the previous value is still a valid option, re-write it so ko
             // notifies the <select> binding and keeps the selection visible.
-            if (previousValue && meta[previousValue]) {
-                this.forceSelect(previousValue);
+            if (previousValue && meta[String(previousValue)]) {
+                this.forceSelect(String(previousValue));
+            } else {
+                // Value may hydrate after options. Poll briefly.
+                this.pollForValueAfterOptions();
             }
 
             console.log(LOG_PREFIX, 'options observable now has', normalized.length, 'entries, preserved value:', previousValue);
