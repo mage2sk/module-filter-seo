@@ -164,15 +164,14 @@ class MetaInjector
             foreach ($layer->getState()->getFilters() as $filterItem) {
                 $code = $filterItem->getFilter()->getRequestVar();
                 if (isset($activeFilters[$code])) {
-                    $filterName = $filterItem->getFilter()->getName();
-                    $label = $filterItem->getLabel();
+                    $filterName = $this->sanitize((string) $filterItem->getFilter()->getName());
+                    $label = $this->sanitize((string) $filterItem->getLabel());
                     $parts[] = $filterName . ': ' . $label;
                 }
             }
         } catch (\Throwable) {
-            // Fallback: use raw param names
             foreach ($activeFilters as $code => $value) {
-                $parts[] = ucfirst($code) . ': ' . $value;
+                $parts[] = ucfirst($this->sanitize((string) $code)) . ': ' . $this->sanitize((string) $value);
             }
         }
 
@@ -215,14 +214,14 @@ class MetaInjector
             foreach ($layer->getState()->getFilters() as $filterItem) {
                 $code = $filterItem->getFilter()->getRequestVar();
                 if (isset($activeFilters[$code])) {
-                    $filterName = $filterItem->getFilter()->getName();
-                    $label = $filterItem->getLabel();
+                    $filterName = $this->sanitize((string) $filterItem->getFilter()->getName());
+                    $label = $this->sanitize((string) $filterItem->getLabel());
                     $parts[] = $filterName . ': ' . $label;
                 }
             }
         } catch (\Throwable) {
             foreach ($activeFilters as $code => $value) {
-                $parts[] = ucfirst($code) . ': ' . $value;
+                $parts[] = ucfirst($this->sanitize((string) $code)) . ': ' . $this->sanitize((string) $value);
             }
         }
 
@@ -250,5 +249,18 @@ class MetaInjector
             ScopeInterface::SCOPE_STORE,
             $storeId
         );
+    }
+
+    /**
+     * Defense in depth for values that get concatenated into <title> / meta
+     * description. PageConfig output escapes these, but stripping tags at the
+     * source means a user-controlled filter value can never carry raw HTML
+     * through an upstream bug.
+     */
+    private function sanitize(string $value): string
+    {
+        $value = strip_tags($value);
+        $value = preg_replace('/[\x00-\x1F\x7F]/u', '', $value) ?? '';
+        return trim($value);
     }
 }
