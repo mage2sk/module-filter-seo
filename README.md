@@ -19,6 +19,10 @@
 [![Website](https://img.shields.io/badge/Website-kishansavaliya.com-0D9488)](https://kishansavaliya.com)
 [![Get a Quote](https://img.shields.io/badge/Get%20a%20Quote-Free%20Estimate-DC2626)](https://kishansavaliya.com/get-quote)
 
+<p align="center">
+  <img src="docs/hero-banner.png" alt="Panth Filter SEO — turn every Magento filter into an indexable landing page. Before: /women/tops.html?color=49&size=166&price=50-100 (ignored by Google). After: /women/tops/color-red-size-xl.html (crawlable, indexed, ranking)." width="100%" />
+</p>
+
 > **Layered navigation SEO done right.** Turns `/women/tops.html?color=49&size=166` into `/women/tops/color-red-size-xl.html` — a real crawlable URL that Google indexes as its own page. Pair it with **per-category, per-store, per-filter** meta title / description / keywords so every filter combination is a bespoke landing page, not a duplicate-content liability.
 
 Magento ships layered navigation as query-string filters — Google treats `?color=49` and `?color=50` as the same URL and drops them from the index. This module rewrites filter URLs into clean path segments (`/color-red.html`) and lets you override the `<title>` and `<meta description>` of each filtered page from the admin. It's the same pattern every major fashion/electronics retailer uses — now on Magento, theme-agnostic.
