@@ -2,7 +2,7 @@
     "name": "mage2kishan/module-filter-seo",
     "description": "Panth Filter SEO \u2014 clean path-based URLs for layered navigation filters + dynamic meta title/description on filtered category pages.",
     "type": "magento2-module",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "license": "proprietary",
     "keywords": [
         "magento2",

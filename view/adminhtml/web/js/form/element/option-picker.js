@@ -1,11 +1,11 @@
 /**
- * Panth Filter SEO — dynamic option picker for the Filter URL Rewrite /
+ * Panth Filter SEO — dynamic option picker for Filter URL Rewrite /
  * Filter Page Meta admin forms.
  *
- * Watches the sibling `attribute_code` select. When its value changes,
- * fetches the attribute's options from the admin AJAX endpoint and
- * rebuilds this select's option list. Auto-fills sibling reference
- * fields (`option_label`, `rewrite_slug`) when present.
+ * Watches the sibling `attribute_code` field. When its value changes,
+ * fetches the attribute's options via AJAX and rebuilds this select's
+ * option list. Auto-fills sibling `option_label` and `rewrite_slug`
+ * fields when they exist and are empty.
  */
 define([
     'Magento_Ui/js/form/element/select',
@@ -15,37 +15,69 @@ define([
 ], function (Select, $, urlBuilder, registry) {
     'use strict';
 
+    var LOG_PREFIX = '[Panth_FilterSeo option-picker]';
+
     return Select.extend({
         defaults: {
             optionsEndpoint: 'panth_filterseo/filterrewrite/options',
             cachedOptions: {},
             optionMeta: {},
-            attributeCode: '',
-            imports: {
-                attributeCode: '${ $.parentName }.attribute_code:value'
-            },
-            listens: {
-                'value': 'onValueChange'
-            },
-            modules: {
-                labelField: '${ $.parentName }.option_label',
-                slugField: '${ $.parentName }.rewrite_slug'
-            }
+            // Placeholder shown before an attribute is picked.
+            caption: ' '
         },
 
         /**
-         * Setter invoked by the `imports` link whenever the sibling
-         * attribute_code field's value changes.
+         * Subscribe to the sibling attribute_code field and load options for
+         * its current value. Uses registry.async so subscription is deferred
+         * until the sibling field is registered.
          *
-         * @param {String} code
+         * @returns {Object}
          */
-        setAttributeCode: function (code) {
-            this.attributeCode = code || '';
-            this.loadOptions(this.attributeCode);
+        initialize: function () {
+            this._super();
+            this.bindToAttribute();
+            this.bindSelfValue();
+            return this;
         },
 
         /**
-         * Fetch the attribute's options (cached) and apply them to this select.
+         * Subscribe to the sibling attribute_code field.
+         */
+        bindToAttribute: function () {
+            var self = this;
+            var path = this.parentName + '.attribute_code';
+
+            registry.async(path)(function (field) {
+                if (!field) {
+                    console.warn(LOG_PREFIX, 'attribute_code field not found at', path);
+                    return;
+                }
+                var initial = field.value();
+                console.log(LOG_PREFIX, 'bound to', path, 'initial value:', initial);
+
+                if (initial) {
+                    self.loadOptions(initial);
+                }
+
+                field.value.subscribe(function (newCode) {
+                    console.log(LOG_PREFIX, 'attribute_code changed →', newCode);
+                    self.loadOptions(newCode);
+                });
+            });
+        },
+
+        /**
+         * Auto-fill sibling reference fields when the user picks an option.
+         */
+        bindSelfValue: function () {
+            var self = this;
+            this.value.subscribe(function (newVal) {
+                self.autoFillSiblings(newVal);
+            });
+        },
+
+        /**
+         * Fetch (or reuse cached) options for the given attribute and apply.
          *
          * @param {String} code
          */
@@ -53,64 +85,90 @@ define([
             var self = this;
 
             if (!code) {
-                this.setOptions([]);
+                self.applyOptions([]);
                 return;
             }
 
-            if (this.cachedOptions[code]) {
-                this.applyOptions(this.cachedOptions[code]);
+            if (self.cachedOptions[code]) {
+                self.applyOptions(self.cachedOptions[code]);
                 return;
             }
+
+            // When `optionsEndpoint` is provided as a pre-built URL via the
+            // ui_component XML (xsi:type="url"), use it as-is. Otherwise
+            // fall back to mage/url which will not include the admin secret
+            // key and will be rejected by backend auth.
+            var url = self.optionsEndpoint && self.optionsEndpoint.indexOf('://') !== -1
+                ? self.optionsEndpoint
+                : urlBuilder.build(self.optionsEndpoint);
+
+            console.log(LOG_PREFIX, 'AJAX', url, 'attribute_code=' + code);
 
             $.ajax({
-                url: urlBuilder.build(this.optionsEndpoint),
+                url: url,
                 method: 'GET',
                 data: { attribute_code: code, form_key: window.FORM_KEY },
                 dataType: 'json',
                 showLoader: true
             }).done(function (response) {
-                var options = (response && Array.isArray(response.options)) ? response.options : [];
-                self.cachedOptions[code] = options;
-                self.applyOptions(options);
-            }).fail(function () {
-                self.setOptions([]);
+                var opts = (response && Array.isArray(response.options)) ? response.options : [];
+                console.log(LOG_PREFIX, 'received', opts.length, 'options');
+                self.cachedOptions[code] = opts;
+                self.applyOptions(opts);
+            }).fail(function (jqxhr, textStatus, errorThrown) {
+                console.error(LOG_PREFIX, 'AJAX failed:', textStatus, errorThrown);
+                self.applyOptions([]);
             });
         },
 
         /**
-         * @param {Array<Object>} options items: {value, label, slug}
+         * Normalize + push options into this select's observable.
+         *
+         * @param {Array<Object>} rawOptions server items: {value, label, slug}
          */
-        applyOptions: function (options) {
+        applyOptions: function (rawOptions) {
             var meta = {};
-            var normalized = options.map(function (o) {
+            var normalized = rawOptions.map(function (o) {
                 var v = String(o.value);
                 meta[v] = o;
                 return { value: v, label: o.label + ' (' + v + ')' };
             });
 
             this.optionMeta = meta;
-            this.setOptions(normalized);
+
+            if (typeof this.setOptions === 'function') {
+                this.setOptions(normalized);
+            }
+            // Belt + braces: also write the observable directly in case
+            // setOptions implementation did not trigger a ko re-render.
+            if (typeof this.options === 'function') {
+                this.options(normalized);
+            }
+
+            console.log(LOG_PREFIX, 'options observable now has', normalized.length, 'entries');
         },
 
         /**
-         * When the user picks an option, auto-fill option_label + rewrite_slug
-         * if they are empty.
+         * Fill option_label + rewrite_slug when the user picks an option.
          *
          * @param {String} value
          */
-        onValueChange: function (value) {
-            var meta;
-            if (!value || !(meta = this.optionMeta[value])) {
+        autoFillSiblings: function (value) {
+            var meta = value && this.optionMeta[value];
+            if (!meta) {
                 return;
             }
 
-            this.labelField(function (field) {
+            var self = this;
+            var parent = this.parentName;
+
+            registry.async(parent + '.option_label')(function (field) {
                 if (field && !field.value()) {
                     field.value(meta.label);
                 }
             });
 
-            this.slugField(function (field) {
+            registry.async(parent + '.rewrite_slug')(function (field) {
                 if (field && !field.value()) {
                     field.value(meta.slug);
                 }

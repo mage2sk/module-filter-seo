@@ -76,6 +76,11 @@
             </formElements>
         </field>
         <field name="option_id" formElement="select" component="Panth_FilterSeo/js/form/element/option-picker">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="optionsEndpoint" xsi:type="url" path="panth_filterseo/filterrewrite/options"/>
+                </item>
+            </argument>
             <settings>
                 <dataType>text</dataType>
                 <label translate="true">Option</label>
