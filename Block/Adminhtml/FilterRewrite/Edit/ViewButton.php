@@ -11,22 +11,17 @@ namespace Panth\FilterSeo\Block\Adminhtml\FilterRewrite\Edit;
 use Magento\Backend\Block\Widget\Context;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
-use Magento\Store\Model\StoreManagerInterface;
+use Panth\FilterSeo\Model\FilterUrl\ViewUrlResolver;
 
 /**
  * @see ButtonProviderInterface
  */
 class ViewButton extends GenericButton implements ButtonProviderInterface
 {
-    /**
-     * @param Context $context
-     * @param ResourceConnection $resource
-     * @param StoreManagerInterface $storeManager
-     */
     public function __construct(
         Context $context,
         private readonly ResourceConnection $resource,
-        private readonly StoreManagerInterface $storeManager
+        private readonly ViewUrlResolver $viewUrlResolver
     ) {
         parent::__construct($context);
     }
@@ -41,7 +36,20 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
             return [];
         }
 
-        $url = $this->resolveFrontendUrl($id);
+        $connection = $this->resource->getConnection();
+        $table = $this->resource->getTableName('panth_seo_filter_rewrite');
+        $row = $connection->fetchRow(
+            $connection->select()->from($table)->where('rewrite_id = ?', $id)
+        );
+        if (!$row) {
+            return [];
+        }
+
+        $url = $this->viewUrlResolver->resolveWithoutCategory(
+            (string) ($row['attribute_code'] ?? ''),
+            (int) ($row['option_id'] ?? 0),
+            (int) ($row['store_id'] ?? 0)
+        );
         if ($url === '') {
             return [];
         }
@@ -52,53 +60,5 @@ class ViewButton extends GenericButton implements ButtonProviderInterface
             'on_click' => sprintf("window.open('%s', '_blank'); return false;", $url),
             'sort_order' => 15,
         ];
-    }
-
-    /**
-     * @param int $rewriteId
-     * @return string
-     */
-    private function resolveFrontendUrl(int $rewriteId): string
-    {
-        $connection = $this->resource->getConnection();
-        $table = $this->resource->getTableName('panth_seo_filter_rewrite');
-
-        $row = $connection->fetchRow(
-            $connection->select()->from($table)->where('rewrite_id = ?', $rewriteId)
-        );
-        if (!$row) {
-            return '';
-        }
-
-        $attributeCode = (string) ($row['attribute_code'] ?? '');
-        $optionId = (int) ($row['option_id'] ?? 0);
-        if ($attributeCode === '' || $optionId === 0) {
-            return '';
-        }
-
-        $storeId = (int) ($row['store_id'] ?? 0);
-        try {
-            $store = $storeId === 0
-                ? $this->storeManager->getDefaultStoreView()
-                : $this->storeManager->getStore($storeId);
-        } catch (\Throwable) {
-            return '';
-        }
-
-        if ($store === null) {
-            return '';
-        }
-
-        $baseUrl = (string) $store->getBaseUrl();
-        if ($baseUrl === '') {
-            return '';
-        }
-
-        return sprintf(
-            '%scatalogsearch/result/?%s=%d',
-            rtrim($baseUrl, '/') . '/',
-            rawurlencode($attributeCode),
-            $optionId
-        );
     }
 }
