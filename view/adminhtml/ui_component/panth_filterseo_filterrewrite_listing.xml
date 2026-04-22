@@ -74,10 +74,9 @@
                 </editor>
             </settings>
         </column>
-        <column name="store_id" class="Magento\Store\Ui\Component\Listing\Column\Store">
+        <column name="store_id" class="Panth\FilterSeo\Ui\Component\Listing\Column\StoreView">
             <settings>
                 <label translate="true">Store View</label>
-                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
                 <sortable>false</sortable>
             </settings>
         </column>

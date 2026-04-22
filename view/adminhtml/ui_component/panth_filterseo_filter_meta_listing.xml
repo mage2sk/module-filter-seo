@@ -65,9 +65,10 @@
                 <label translate="true">Option ID</label>
             </settings>
         </column>
-        <column name="store_id">
+        <column name="store_id" class="Panth\FilterSeo\Ui\Component\Listing\Column\StoreView">
             <settings>
-                <label translate="true">Store</label>
+                <label translate="true">Store View</label>
+                <sortable>false</sortable>
             </settings>
         </column>
         <column name="meta_title">
