@@ -50,19 +50,22 @@
                 <sorting>asc</sorting>
             </settings>
         </column>
-        <column name="category_id">
+        <column name="category_id" class="Panth\FilterSeo\Ui\Component\Listing\Column\CategoryName">
             <settings>
-                <label translate="true">Category ID</label>
+                <label translate="true">Category</label>
+                <sortable>false</sortable>
             </settings>
         </column>
         <column name="attribute_code">
             <settings>
-                <label translate="true">Attribute Code</label>
+                <label translate="true">Filter Attribute</label>
+                <filter>text</filter>
             </settings>
         </column>
-        <column name="option_id">
+        <column name="option_id" class="Panth\FilterSeo\Ui\Component\Listing\Column\OptionLabel">
             <settings>
-                <label translate="true">Option ID</label>
+                <label translate="true">Option</label>
+                <sortable>false</sortable>
             </settings>
         </column>
         <column name="store_id" class="Panth\FilterSeo\Ui\Component\Listing\Column\StoreView">
