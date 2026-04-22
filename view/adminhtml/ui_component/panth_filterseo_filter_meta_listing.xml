@@ -25,7 +25,7 @@
             </storageConfig>
             <updateUrl path="mui/index/render"/>
         </settings>
-        <dataProvider class="Panth\FilterSeo\Model\ResourceModel\CategoryFilterMeta\Grid\Collection" name="panth_filterseo_filter_meta_listing_data_source">
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="panth_filterseo_filter_meta_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>id</primaryFieldName>

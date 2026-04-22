@@ -24,5 +24,13 @@
              sortOrder="20"
              action="panth_filterseo/filtermeta/index"
              resource="Panth_FilterSeo::filter_meta"/>
+
+        <add id="Panth_FilterSeo::config"
+             title="Configuration"
+             module="Panth_FilterSeo"
+             parent="Panth_FilterSeo::root"
+             sortOrder="30"
+             action="adminhtml/system_config/edit/section/panth_filter_seo"
+             resource="Panth_FilterSeo::filter"/>
     </menu>
 </config>
