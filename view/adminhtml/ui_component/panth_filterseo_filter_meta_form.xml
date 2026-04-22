@@ -39,37 +39,59 @@
                 <dataType>text</dataType>
             </settings>
         </field>
-        <field name="category_id" formElement="input">
+        <field name="category_id" formElement="select">
             <settings>
                 <dataType>text</dataType>
-                <label translate="true">Category ID</label>
+                <label translate="true">Category</label>
                 <dataScope>category_id</dataScope>
                 <validation>
                     <rule name="required-entry" xsi:type="boolean">true</rule>
-                    <rule name="validate-digits" xsi:type="boolean">true</rule>
                 </validation>
+                <notice translate="true">Choose the storefront category this override applies to.</notice>
             </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Panth\FilterSeo\Model\Config\Source\Categories"/>
+                    </settings>
+                </select>
+            </formElements>
         </field>
-        <field name="attribute_code" formElement="input">
+        <field name="attribute_code" formElement="select">
             <settings>
                 <dataType>text</dataType>
-                <label translate="true">Attribute Code</label>
+                <label translate="true">Filter Attribute</label>
                 <dataScope>attribute_code</dataScope>
                 <validation>
                     <rule name="required-entry" xsi:type="boolean">true</rule>
                 </validation>
+                <notice translate="true">Layered navigation attribute the override targets.</notice>
             </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Panth\FilterSeo\Model\Config\Source\FilterableAttributes"/>
+                    </settings>
+                </select>
+            </formElements>
         </field>
-        <field name="option_id" formElement="input">
+        <field name="option_id" formElement="select" component="Panth_FilterSeo/js/form/element/option-picker">
             <settings>
                 <dataType>text</dataType>
-                <label translate="true">Option ID</label>
+                <label translate="true">Option</label>
                 <dataScope>option_id</dataScope>
                 <validation>
                     <rule name="required-entry" xsi:type="boolean">true</rule>
-                    <rule name="validate-digits" xsi:type="boolean">true</rule>
                 </validation>
+                <notice translate="true">Pick the Filter Attribute above first — available options will populate here.</notice>
             </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Panth\FilterSeo\Ui\Component\Form\Element\EmptyOptions"/>
+                    </settings>
+                </select>
+            </formElements>
         </field>
         <field name="store_id" formElement="select">
             <settings>
