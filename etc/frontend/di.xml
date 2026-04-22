@@ -38,4 +38,19 @@
                 type="Panth\FilterSeo\Plugin\FilterMeta\CategoryViewPlugin"
                 sortOrder="15"/>
     </type>
+
+    <!-- FilterRouter: must be registered in frontend area so Magento's RouterList
+         picks it up on storefront requests. Runs after urlrewrite (20) and standard
+         (30) but before cms (60) and default (100). -->
+    <type name="Magento\Framework\App\RouterList">
+        <arguments>
+            <argument name="routerList" xsi:type="array">
+                <item name="panth_filterseo_filter" xsi:type="array">
+                    <item name="class" xsi:type="string">Panth\FilterSeo\Controller\Router\FilterRouter</item>
+                    <item name="disable" xsi:type="boolean">false</item>
+                    <item name="sortOrder" xsi:type="string">40</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
 </config>

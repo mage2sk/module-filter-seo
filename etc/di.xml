@@ -8,20 +8,7 @@
     <preference for="Panth\FilterSeo\Api\CategoryFilterMetaRepositoryInterface"
                 type="Panth\FilterSeo\Model\CategoryFilterMeta\Repository"/>
 
-    <!-- FilterRouter: intercept filter-friendly URLs and resolve them. Must run
-         after the standard URL rewrite router (sortOrder 20) but before the
-         default/CMS router (sortOrder 60). -->
-    <type name="Magento\Framework\App\RouterList">
-        <arguments>
-            <argument name="routerList" xsi:type="array">
-                <item name="panth_filterseo_filter" xsi:type="array">
-                    <item name="class" xsi:type="string">Panth\FilterSeo\Controller\Router\FilterRouter</item>
-                    <item name="disable" xsi:type="boolean">false</item>
-                    <item name="sortOrder" xsi:type="string">22</item>
-                </item>
-            </argument>
-        </arguments>
-    </type>
+    <!-- FilterRouter is area-specific; registered in etc/frontend/di.xml -->
 
     <!-- Grid collections: table + resource model binding -->
     <type name="Panth\FilterSeo\Model\ResourceModel\FilterRewrite\Grid\Collection">
