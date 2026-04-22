@@ -259,9 +259,13 @@ define([
         },
 
         /**
-         * When the user picks an option, auto-fill the sibling reference
-         * fields (option_label, rewrite_slug) if they are empty. The user
-         * may still edit those values before saving.
+         * When the user picks an option, mirror the selection into the
+         * sibling reference fields (option_label, rewrite_slug).
+         *
+         * option_label is always synced since it is a read-only reference
+         * to the chosen option. rewrite_slug is filled only when empty
+         * so a user-customised slug (e.g. 'rouge' overriding 'red') is
+         * preserved across re-opens and accidental re-selections.
          *
          * @param {String} value
          * @returns {void}
@@ -275,7 +279,7 @@ define([
             var parent = this.parentName;
 
             registry.async(parent + '.option_label')(function (field) {
-                if (field && !field.value()) {
+                if (field) {
                     field.value(meta.label);
                 }
             });
