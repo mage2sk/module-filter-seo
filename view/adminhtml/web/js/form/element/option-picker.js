@@ -41,6 +41,23 @@ define([
         },
 
         /**
+         * Override the parent Magento_Ui/js/form/element/select's
+         * validateInitialValue() which clears the value observable whenever
+         * the initial value is not in the options array. Our options array
+         * is empty at init time (it gets populated via AJAX after the
+         * sibling attribute_code field is read) — without this override the
+         * form-provider-hydrated value (e.g. "18") would be wiped to ''
+         * before our applyOptions runs, and the <select> would never show
+         * the previously saved option.
+         *
+         * @returns {Object}
+         */
+        validateInitialValue: function () {
+            console.log(LOG_PREFIX, 'validateInitialValue: preserving initial value', this.value());
+            return this;
+        },
+
+        /**
          * Subscribe to the sibling attribute_code field.
          */
         bindToAttribute: function () {
