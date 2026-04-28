@@ -7,14 +7,15 @@ declare(strict_types=1);
 
 namespace Panth\FilterSeo\Plugin\FilterUrl;
 
+use Magento\Catalog\Api\CategoryRepositoryInterface;
 use Magento\Catalog\Controller\Category\View;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute\CollectionFactory as AttributeCollectionFactory;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\RedirectFactory;
-use Magento\Framework\Registry;
 use Magento\Store\Model\StoreManagerInterface;
 use Panth\FilterSeo\Helper\Config;
 use Panth\FilterSeo\Model\FilterUrl\UrlBuilder;
+use Psr\Log\LoggerInterface;
 
 /**
  * Plugin on Magento\Catalog\Controller\Category\View::execute()
@@ -23,6 +24,13 @@ use Panth\FilterSeo\Model\FilterUrl\UrlBuilder;
  * filters (e.g. /category.html?license_type=12), 301-redirect to the
  * rewritten path-based URL so old links and search-engine results
  * consolidate onto the canonical clean URL.
+ *
+ * NOTE: we deliberately do NOT read 'current_category' from the registry —
+ * it isn't populated until inside View::execute() (via _initCategory()),
+ * which is AFTER our aroundExecute fires. Instead, we read the category id
+ * from the request (URL rewrite already populated it) and load via the
+ * repository. Loading is cheap (in-memory cache hit when execute() does
+ * the same load moments later).
  */
 class CanonicalRedirectPlugin
 {
@@ -39,12 +47,13 @@ class CanonicalRedirectPlugin
 
     public function __construct(
         private readonly Config $config,
-        private readonly Registry $registry,
         private readonly RequestInterface $request,
         private readonly StoreManagerInterface $storeManager,
         private readonly UrlBuilder $urlBuilder,
         private readonly RedirectFactory $redirectFactory,
-        private readonly AttributeCollectionFactory $attributeCollectionFactory
+        private readonly AttributeCollectionFactory $attributeCollectionFactory,
+        private readonly CategoryRepositoryInterface $categoryRepository,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -54,8 +63,8 @@ class CanonicalRedirectPlugin
             return $proceed();
         }
 
-        $category = $this->registry->registry('current_category');
-        if ($category === null) {
+        $categoryId = (int) $this->request->getParam('id');
+        if ($categoryId <= 0) {
             return $proceed();
         }
 
@@ -75,8 +84,10 @@ class CanonicalRedirectPlugin
 
         try {
             $storeId = (int) $this->storeManager->getStore()->getId();
+            $category = $this->categoryRepository->get($categoryId, $storeId);
             $rewritten = $this->urlBuilder->build($category->getUrl(), $filters, $storeId);
-        } catch (\Throwable) {
+        } catch (\Throwable $e) {
+            $this->logger->warning('Panth FilterSeo canonical redirect skipped', ['error' => $e->getMessage()]);
             return $proceed();
         }
 
