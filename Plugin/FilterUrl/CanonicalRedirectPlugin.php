@@ -12,7 +12,6 @@ use Magento\Catalog\Controller\Category\View;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute\CollectionFactory as AttributeCollectionFactory;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\RedirectFactory;
-use Magento\Framework\Url as FrameworkUrl;
 use Magento\Store\Model\StoreManagerInterface;
 use Panth\FilterSeo\Helper\Config;
 use Panth\FilterSeo\Model\FilterUrl\UrlBuilder;
@@ -64,24 +63,17 @@ class CanonicalRedirectPlugin
             return $proceed();
         }
 
-        // Belt-and-braces: if FilterRouter has already rewritten this request
-        // to a pretty URL it sets the URL alias. Bail out — the user is
-        // already on the canonical surface; redirecting again would loop.
-        if ((string) $this->request->getAlias(FrameworkUrl::REWRITE_REQUEST_PATH_ALIAS) !== '') {
-            return $proceed();
-        }
-
         $categoryId = (int) $this->request->getParam('id');
         if ($categoryId <= 0) {
             return $proceed();
         }
 
-        // Read filter codes from the query string ONLY ($_GET), NOT from
-        // $request->getParams(). FilterRouter::match() injects the same
-        // attribute codes via setParam() on pretty URLs, and getParams()
-        // can't distinguish those router-supplied values from real
-        // user-supplied query params — so reading getParams() here would
-        // 301 the pretty URL back to itself (infinite redirect loop).
+        // Read filter codes from $_GET only — never from $request->getParams().
+        // FilterRouter::match() does setParam() for the attribute codes on
+        // pretty URLs, so getParams() can't distinguish router-supplied from
+        // user-supplied filters; reading it here would 301 every pretty URL
+        // back to itself (infinite redirect loop). Reading getQuery() means
+        // pretty URLs (empty $_GET) skip the redirect naturally.
         $query = $this->request->getQuery()->toArray();
         $filters = [];
         foreach ($this->getFilterableAttributeCodes() as $code) {
