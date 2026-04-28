@@ -25,6 +25,15 @@
                 sortOrder="10"/>
     </type>
 
+    <!-- "Clear All" button: native getClearUrl strips ?attr=optid query
+         params, which is a no-op when filters live in the path. Replace
+         with the bare category URL. -->
+    <type name="Magento\LayeredNavigation\Block\Navigation\State">
+        <plugin name="panth_filterseo_clear_all_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\ClearAllUrlPlugin"
+                sortOrder="10"/>
+    </type>
+
     <!-- Pager URL plugin: preserve SEO-friendly filter URLs in pagination -->
     <type name="Magento\Theme\Block\Html\Pager">
         <plugin name="panth_filterseo_pager_url"
