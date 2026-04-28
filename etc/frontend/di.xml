@@ -32,8 +32,11 @@
                 sortOrder="10"/>
     </type>
 
-    <!-- Category view meta injection: overrides meta title/description when filters are active -->
+    <!-- Category view: meta injection + canonical 301 redirect from query-string filter URLs -->
     <type name="Magento\Catalog\Controller\Category\View">
+        <plugin name="panth_filterseo_canonical_redirect"
+                type="Panth\FilterSeo\Plugin\FilterUrl\CanonicalRedirectPlugin"
+                sortOrder="5"/>
         <plugin name="panth_filterseo_filter_meta_category"
                 type="Panth\FilterSeo\Plugin\FilterMeta\CategoryViewPlugin"
                 sortOrder="15"/>

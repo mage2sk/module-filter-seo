@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Panth\FilterSeo\Model\FilterMeta;
 
 use Magento\Catalog\Model\Layer\Resolver as LayerResolver;
+use Magento\Eav\Model\ResourceModel\Entity\Attribute\CollectionFactory as AttributeCollectionFactory;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\App\ResourceConnection;
@@ -21,12 +22,16 @@ use Psr\Log\LoggerInterface;
  */
 class MetaInjector
 {
+    /** @var string[]|null */
+    private ?array $filterableAttributeCodes = null;
+
     public function __construct(
         private readonly ResourceConnection $resource,
         private readonly RequestInterface $request,
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly LayerResolver $layerResolver,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly AttributeCollectionFactory $attributeCollectionFactory
     ) {
     }
 
@@ -134,17 +139,52 @@ class MetaInjector
                 }
             }
         } catch (\Throwable) {
-            // Layer may not be initialised; fall back to request params
-            $knownFilterParams = ['color', 'size', 'price', 'material', 'style', 'brand', 'manufacturer'];
-            foreach ($knownFilterParams as $param) {
-                $val = $this->request->getParam($param);
+            // fall through to request-based discovery
+        }
+
+        // Layer state is empty during controller `afterExecute` (layered nav
+        // populates state on block render, not on dispatch). Walk request
+        // params and pick up anything matching a filterable EAV attribute.
+        if ($filters === []) {
+            foreach ($this->getFilterableAttributeCodes() as $code) {
+                $val = $this->request->getParam($code);
                 if ($val !== null && $val !== '') {
-                    $filters[$param] = (string) $val;
+                    $filters[$code] = (string) $val;
                 }
             }
         }
 
         return $filters;
+    }
+
+    /**
+     * All catalog product EAV attribute codes flagged as filterable in
+     * layered navigation. Cached on the instance so we hit the DB once per
+     * request.
+     *
+     * @return string[]
+     */
+    private function getFilterableAttributeCodes(): array
+    {
+        if ($this->filterableAttributeCodes !== null) {
+            return $this->filterableAttributeCodes;
+        }
+
+        $codes = [];
+        try {
+            $coll = $this->attributeCollectionFactory->create();
+            $coll->setEntityTypeFilter(4);
+            $coll->addFieldToFilter('is_filterable', ['in' => [1, 2]]);
+            foreach ($coll as $attr) {
+                $codes[] = (string) $attr->getAttributeCode();
+            }
+        } catch (\Throwable $e) {
+            $this->logger->warning('Panth FilterSeo: failed loading filterable attributes', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return $this->filterableAttributeCodes = $codes;
     }
 
     /**
