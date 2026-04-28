@@ -12,6 +12,7 @@ use Magento\Catalog\Controller\Category\View;
 use Magento\Eav\Model\ResourceModel\Entity\Attribute\CollectionFactory as AttributeCollectionFactory;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\RedirectFactory;
+use Magento\Framework\Url as FrameworkUrl;
 use Magento\Store\Model\StoreManagerInterface;
 use Panth\FilterSeo\Helper\Config;
 use Panth\FilterSeo\Model\FilterUrl\UrlBuilder;
@@ -63,18 +64,31 @@ class CanonicalRedirectPlugin
             return $proceed();
         }
 
+        // Belt-and-braces: if FilterRouter has already rewritten this request
+        // to a pretty URL it sets the URL alias. Bail out — the user is
+        // already on the canonical surface; redirecting again would loop.
+        if ((string) $this->request->getAlias(FrameworkUrl::REWRITE_REQUEST_PATH_ALIAS) !== '') {
+            return $proceed();
+        }
+
         $categoryId = (int) $this->request->getParam('id');
         if ($categoryId <= 0) {
             return $proceed();
         }
 
-        $params = $this->request->getParams();
+        // Read filter codes from the query string ONLY ($_GET), NOT from
+        // $request->getParams(). FilterRouter::match() injects the same
+        // attribute codes via setParam() on pretty URLs, and getParams()
+        // can't distinguish those router-supplied values from real
+        // user-supplied query params — so reading getParams() here would
+        // 301 the pretty URL back to itself (infinite redirect loop).
+        $query = $this->request->getQuery()->toArray();
         $filters = [];
         foreach ($this->getFilterableAttributeCodes() as $code) {
-            if (!empty($params[$code])) {
+            if (!empty($query[$code])) {
                 $filters[] = [
                     'attribute_code' => $code,
-                    'option_id' => (int) $params[$code],
+                    'option_id' => (int) $query[$code],
                 ];
             }
         }
@@ -95,14 +109,14 @@ class CanonicalRedirectPlugin
             return $proceed();
         }
 
-        $query = [];
+        $carry = [];
         foreach (self::KEEP_PARAMS as $k) {
-            if (isset($params[$k]) && $params[$k] !== '') {
-                $query[$k] = $params[$k];
+            if (isset($query[$k]) && $query[$k] !== '') {
+                $carry[$k] = $query[$k];
             }
         }
-        if ($query !== []) {
-            $rewritten .= (str_contains($rewritten, '?') ? '&' : '?') . http_build_query($query);
+        if ($carry !== []) {
+            $rewritten .= (str_contains($rewritten, '?') ? '&' : '?') . http_build_query($carry);
         }
 
         return $this->redirectFactory->create()->setUrl($rewritten)->setHttpResponseCode(301);

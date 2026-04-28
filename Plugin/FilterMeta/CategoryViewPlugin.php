@@ -3,9 +3,8 @@ declare(strict_types=1);
 
 namespace Panth\FilterSeo\Plugin\FilterMeta;
 
-use Magento\Catalog\Controller\Category\View;
+use Magento\Catalog\Block\Category\View as CategoryViewBlock;
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Registry;
 use Magento\Framework\View\Page\Config as PageConfig;
 use Magento\Store\Model\ScopeInterface;
@@ -28,19 +27,14 @@ class CategoryViewPlugin
     }
 
     /**
-     * After the category page controller executes, inject filter-specific meta tags.
-     *
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
-     * @param View $subject
-     * @param ResultInterface|null $result
-     * @return ResultInterface|null
+     * Hooks the category view BLOCK (not the controller). Magento core
+     * Block\Category\View::_prepareLayout writes the parent category's
+     * meta_title onto PageConfig during setLayout — so any earlier
+     * controller-level afterExecute injection gets clobbered. Running
+     * after setLayout is the only way to win the last-write race.
      */
-    public function afterExecute(View $subject, ResultInterface|null $result): ResultInterface|null
+    public function afterSetLayout(CategoryViewBlock $subject, $result)
     {
-        if ($result === null) {
-            return null;
-        }
-
         try {
             if (!$this->isFilterMetaEnabled()) {
                 return $result;
@@ -51,10 +45,11 @@ class CategoryViewPlugin
                 return $result;
             }
 
-            $categoryId = (int) $category->getId();
-            $storeId = (int) $this->storeManager->getStore()->getId();
-
-            $this->metaInjector->inject($this->pageConfig, $categoryId, $storeId);
+            $this->metaInjector->inject(
+                $this->pageConfig,
+                (int) $category->getId(),
+                (int) $this->storeManager->getStore()->getId()
+            );
         } catch (\Throwable $e) {
             $this->logger->warning(
                 'Panth FilterSeo filter meta injection failed',
@@ -65,9 +60,6 @@ class CategoryViewPlugin
         return $result;
     }
 
-    /**
-     * @return bool
-     */
     private function isFilterMetaEnabled(): bool
     {
         return $this->seoConfig->isEnabled()

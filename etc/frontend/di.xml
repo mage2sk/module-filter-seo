@@ -32,14 +32,21 @@
                 sortOrder="10"/>
     </type>
 
-    <!-- Category view: meta injection + canonical 301 redirect from query-string filter URLs -->
+    <!-- Category controller: 301 from query-string filter URLs to pretty path URLs -->
     <type name="Magento\Catalog\Controller\Category\View">
         <plugin name="panth_filterseo_canonical_redirect"
                 type="Panth\FilterSeo\Plugin\FilterUrl\CanonicalRedirectPlugin"
                 sortOrder="5"/>
+    </type>
+
+    <!-- Category view BLOCK: filter-specific meta injection runs AFTER core
+         _prepareLayout has set the parent category's meta_title, so we win
+         the last-write race. sortOrder=200 also keeps us behind any other
+         module that runs at default sortOrder (e.g. AdvancedSEO). -->
+    <type name="Magento\Catalog\Block\Category\View">
         <plugin name="panth_filterseo_filter_meta_category"
                 type="Panth\FilterSeo\Plugin\FilterMeta\CategoryViewPlugin"
-                sortOrder="15"/>
+                sortOrder="200"/>
     </type>
 
     <!-- FilterRouter: must be registered in frontend area so Magento's RouterList
