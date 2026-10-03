@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<!--
+  Frontend-only DI: these plugins ONLY load on storefront requests.
+  They are NEVER instantiated on admin, API, or cron requests. This prevents
+  session/form-key issues in the admin panel and avoids bootstrapping catalog
+  layer resolvers on non-frontend contexts.
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Filter item plugins: rewrite layered navigation URLs to SEO-friendly paths -->
+    <type name="Magento\Catalog\Model\Layer\Filter\Item">
+        <plugin name="panth_filterseo_filter_item_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\FilterItemUrlPlugin"
+                sortOrder="10"/>
+        <plugin name="panth_filterseo_filter_item_remove_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\FilterItemRemoveUrlPlugin"
+                sortOrder="20"/>
+    </type>
+
+    <!-- Swatch filter URL plugin -->
+    <type name="Magento\Swatches\Block\LayeredNavigation\RenderLayered">
+        <plugin name="panth_filterseo_swatch_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\SwatchUrlPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- "Clear All" button: native getClearUrl strips ?attr=optid query
+         params, which is a no-op when filters live in the path. Replace
+         with the bare category URL. -->
+    <type name="Magento\LayeredNavigation\Block\Navigation\State">
+        <plugin name="panth_filterseo_clear_all_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\ClearAllUrlPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Pager URL plugin: preserve SEO-friendly filter URLs in pagination -->
+    <type name="Magento\Theme\Block\Html\Pager">
+        <plugin name="panth_filterseo_pager_url"
+                type="Panth\FilterSeo\Plugin\FilterUrl\PagerPlugin"
+                sortOrder="10"/>
+    </type>
+
+    <!-- Category controller: 301 from query-string filter URLs to pretty path URLs -->
+    <type name="Magento\Catalog\Controller\Category\View">
+        <plugin name="panth_filterseo_canonical_redirect"
+                type="Panth\FilterSeo\Plugin\FilterUrl\CanonicalRedirectPlugin"
+                sortOrder="5"/>
+    </type>
+
+    <!-- Category view BLOCK: filter-specific meta injection runs AFTER core
+         _prepareLayout has set the parent category's meta_title, so we win
+         the last-write race. sortOrder=200 also keeps us behind any other
+         module that runs at default sortOrder (e.g. AdvancedSEO). -->
+    <type name="Magento\Catalog\Block\Category\View">
+        <plugin name="panth_filterseo_filter_meta_category"
+                type="Panth\FilterSeo\Plugin\FilterMeta\CategoryViewPlugin"
+                sortOrder="200"/>
+        <plugin name="panth_filterseo_facet_robots"
+                type="Panth\FilterSeo\Plugin\FilterMeta\FacetRobotsPlugin"
+                sortOrder="190"/>
+    </type>
+
+    <!-- FilterRouter: must be registered in frontend area so Magento's RouterList
+         picks it up on storefront requests. Runs after urlrewrite (20) and standard
+         (30) but before cms (60) and default (100). -->
+    <type name="Magento\Framework\App\RouterList">
+        <arguments>
+            <argument name="routerList" xsi:type="array">
+                <item name="panth_filterseo_filter" xsi:type="array">
+                    <item name="class" xsi:type="string">Panth\FilterSeo\Controller\Router\FilterRouter</item>
+                    <item name="disable" xsi:type="boolean">false</item>
+                    <item name="sortOrder" xsi:type="string">40</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+</config>

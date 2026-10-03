@@ -1,0 +1,82 @@
+<?php
+declare(strict_types=1);
+
+namespace Panth\FilterSeo\Controller\Adminhtml\FilterRewrite;
+
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\Controller\ResultFactory;
+use Panth\FilterSeo\Controller\Adminhtml\AbstractAction;
+
+class Save extends AbstractAction implements HttpPostActionInterface
+{
+    public const ADMIN_RESOURCE = 'Panth_FilterSeo::filter';
+
+    private const SLUG_PATTERN = '/^[\p{L}\p{N}_-]+$/u';
+
+    public function __construct(
+        Context $context,
+        private readonly ResourceConnection $resource
+    ) {
+        parent::__construct($context);
+    }
+
+    public function execute()
+    {
+        $resultJson = $this->resultFactory->create(ResultFactory::TYPE_JSON);
+        $error      = false;
+        $messages   = [];
+
+        $items = $this->getRequest()->getParam('items', []);
+        if (!is_array($items) || $items === []) {
+            $error      = true;
+            $messages[] = __('Please correct the data sent.');
+            $resultJson->setData(['messages' => $messages, 'error' => $error]);
+            return $resultJson;
+        }
+
+        $connection = $this->resource->getConnection();
+        $tableName  = $this->resource->getTableName('panth_seo_filter_rewrite');
+
+        foreach ($items as $id => $data) {
+            if (!is_array($data)) {
+                continue;
+            }
+            if (array_key_exists('rewrite_slug', $data)
+                && (!is_scalar($data['rewrite_slug'])
+                    || !preg_match(self::SLUG_PATTERN, (string) $data['rewrite_slug']))
+            ) {
+                $error      = true;
+                $messages[] = '[ID: ' . (int) $id . '] '
+                    . __('The URL slug may contain only letters, numbers, hyphens and underscores.');
+                continue;
+            }
+            try {
+                $updateData = [];
+                foreach (['rewrite_slug', 'is_active', 'option_label', 'attribute_code', 'store_id'] as $field) {
+                    if (array_key_exists($field, $data)) {
+                        $updateData[$field] = $data[$field];
+                    }
+                }
+                if ($updateData !== []) {
+                    $connection->update(
+                        $tableName,
+                        $updateData,
+                        ['rewrite_id = ?' => (int) $id]
+                    );
+                }
+            } catch (\Throwable $e) {
+                $error      = true;
+                $messages[] = '[ID: ' . (int) $id . '] Could not save record.';
+            }
+        }
+
+        $resultJson->setData([
+            'messages' => $messages ?: [__('Record(s) saved.')],
+            'error'    => $error,
+        ]);
+
+        return $resultJson;
+    }
+}

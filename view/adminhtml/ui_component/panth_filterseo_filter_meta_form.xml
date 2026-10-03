@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">panth_filterseo_filter_meta_form.panth_filterseo_filter_meta_form_data_source</item>
+        </item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="back" class="Panth\FilterSeo\Block\Adminhtml\FilterMeta\Edit\BackButton"/>
+            <button name="delete" class="Panth\FilterSeo\Block\Adminhtml\FilterMeta\Edit\DeleteButton"/>
+            <button name="view" class="Panth\FilterSeo\Block\Adminhtml\FilterMeta\Edit\ViewButton"/>
+            <button name="save" class="Panth\FilterSeo\Block\Adminhtml\FilterMeta\Edit\SaveButton"/>
+            <button name="save_and_continue" class="Panth\FilterSeo\Block\Adminhtml\FilterMeta\Edit\SaveAndContinueButton"/>
+        </buttons>
+        <namespace>panth_filterseo_filter_meta_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>panth_filterseo_filter_meta_form.panth_filterseo_filter_meta_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="panth_filterseo_filter_meta_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="panth_filterseo/filtermeta/save"/>
+        </settings>
+        <dataProvider class="Panth\FilterSeo\Ui\Component\Form\DataProvider\FilterMetaFormDataProvider" name="panth_filterseo_filter_meta_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general">
+        <settings>
+            <label translate="true">General</label>
+        </settings>
+        <field name="id" formElement="input">
+            <settings>
+                <visible>false</visible>
+                <dataType>text</dataType>
+            </settings>
+        </field>
+        <field name="category_id" formElement="select">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Category</label>
+                <dataScope>category_id</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <notice translate="true">Choose the storefront category this override applies to.</notice>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Panth\FilterSeo\Model\Config\Source\Categories"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="attribute_code" formElement="select">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Filter Attribute</label>
+                <dataScope>attribute_code</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <notice translate="true">Layered navigation attribute the override targets.</notice>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Panth\FilterSeo\Model\Config\Source\FilterableAttributes"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="option_id" formElement="select" component="Panth_FilterSeo/js/form/element/option-picker">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="optionsEndpoint" xsi:type="url" path="panth_filterseo/filterrewrite/options"/>
+                </item>
+            </argument>
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Option</label>
+                <dataScope>option_id</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+                <notice translate="true">Pick the Filter Attribute above first - available options will populate here.</notice>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Panth\FilterSeo\Ui\Component\Form\Element\EmptyOptions"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="store_id" formElement="select">
+            <settings>
+                <dataType>int</dataType>
+                <label translate="true">Store View</label>
+                <dataScope>store_id</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Magento\Store\Ui\Component\Listing\Column\Store\Options"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="meta_title" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Meta Title</label>
+                <dataScope>meta_title</dataScope>
+            </settings>
+        </field>
+        <field name="meta_description" formElement="textarea">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Meta Description</label>
+                <dataScope>meta_description</dataScope>
+            </settings>
+        </field>
+        <field name="meta_keywords" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <label translate="true">Meta Keywords</label>
+                <dataScope>meta_keywords</dataScope>
+            </settings>
+        </field>
+        <field name="breadcrumbs_priority" formElement="input">
+            <settings>
+                <dataType>number</dataType>
+                <label translate="true">Breadcrumbs Priority</label>
+                <dataScope>breadcrumbs_priority</dataScope>
+                <validation>
+                    <rule name="validate-digits" xsi:type="boolean">true</rule>
+                </validation>
+                <notice translate="true">Breadcrumb priority weight. Higher values are preferred when resolving the breadcrumb path. Default: 0.</notice>
+            </settings>
+        </field>
+    </fieldset>
+</form>
