@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <!-- Interface bindings: repository preferences -->
+    <preference for="Panth\FilterSeo\Api\FilterRewriteRepositoryInterface"
+                type="Panth\FilterSeo\Model\FilterRewrite\Repository"/>
+    <preference for="Panth\FilterSeo\Api\CategoryFilterMetaRepositoryInterface"
+                type="Panth\FilterSeo\Model\CategoryFilterMeta\Repository"/>
+
+    <!-- FilterRouter is area-specific; registered in etc/frontend/di.xml -->
+
+    <!-- Grid collections: table + resource model binding -->
+    <type name="Panth\FilterSeo\Model\ResourceModel\FilterRewrite\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">panth_seo_filter_rewrite</argument>
+            <argument name="resourceModel" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\FilterRewrite</argument>
+        </arguments>
+    </type>
+    <type name="Panth\FilterSeo\Model\ResourceModel\CategoryFilterMeta\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">panth_seo_category_filter_meta</argument>
+            <argument name="resourceModel" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\CategoryFilterMeta</argument>
+        </arguments>
+    </type>
+
+    <!-- Data Provider Configuration: register grid data sources -->
+    <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
+        <arguments>
+            <argument name="collections" xsi:type="array">
+                <item name="panth_filterseo_filterrewrite_listing_data_source" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\FilterRewrite\Grid\Collection</item>
+                <item name="panth_filterseo_filter_meta_listing_data_source" xsi:type="string">Panth\FilterSeo\Model\ResourceModel\CategoryFilterMeta\Grid\Collection</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <virtualType name="Panth\FilterSeo\Ui\FilterRewriteGridFulltextFilter" type="Panth\FilterSeo\Ui\Component\Listing\LikeFulltextFilter">
+        <arguments>
+            <argument name="columns" xsi:type="array">
+                <item name="attribute_code" xsi:type="string">main_table.attribute_code</item>
+                <item name="option_label" xsi:type="string">main_table.option_label</item>
+                <item name="rewrite_slug" xsi:type="string">main_table.rewrite_slug</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Panth\FilterSeo\Ui\FilterRewriteGridFilterPool" type="Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool">
+        <arguments>
+            <argument name="appliers" xsi:type="array">
+                <item name="regular" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\RegularFilter</item>
+                <item name="fulltext" xsi:type="object">Panth\FilterSeo\Ui\FilterRewriteGridFulltextFilter</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Panth\FilterSeo\Ui\FilterRewriteGridReporting" type="Magento\Framework\View\Element\UiComponent\DataProvider\Reporting">
+        <arguments>
+            <argument name="filterPool" xsi:type="object">Panth\FilterSeo\Ui\FilterRewriteGridFilterPool</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Panth\FilterSeo\Ui\FilterRewriteGridDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+        <arguments>
+            <argument name="reporting" xsi:type="object">Panth\FilterSeo\Ui\FilterRewriteGridReporting</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Panth\FilterSeo\Ui\FilterMetaGridFulltextFilter" type="Panth\FilterSeo\Ui\Component\Listing\LikeFulltextFilter">
+        <arguments>
+            <argument name="columns" xsi:type="array">
+                <item name="attribute_code" xsi:type="string">main_table.attribute_code</item>
+                <item name="meta_title" xsi:type="string">main_table.meta_title</item>
+                <item name="meta_keywords" xsi:type="string">main_table.meta_keywords</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Panth\FilterSeo\Ui\FilterMetaGridFilterPool" type="Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool">
+        <arguments>
+            <argument name="appliers" xsi:type="array">
+                <item name="regular" xsi:type="object">Magento\Framework\View\Element\UiComponent\DataProvider\RegularFilter</item>
+                <item name="fulltext" xsi:type="object">Panth\FilterSeo\Ui\FilterMetaGridFulltextFilter</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Panth\FilterSeo\Ui\FilterMetaGridReporting" type="Magento\Framework\View\Element\UiComponent\DataProvider\Reporting">
+        <arguments>
+            <argument name="filterPool" xsi:type="object">Panth\FilterSeo\Ui\FilterMetaGridFilterPool</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Panth\FilterSeo\Ui\FilterMetaGridDataProvider" type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+        <arguments>
+            <argument name="reporting" xsi:type="object">Panth\FilterSeo\Ui\FilterMetaGridReporting</argument>
+        </arguments>
+    </virtualType>
+</config>

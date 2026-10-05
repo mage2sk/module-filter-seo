@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+
+    <!-- ============================================================ -->
+    <!-- panth_seo_filter_rewrite                                       -->
+    <!-- ============================================================ -->
+    <table name="panth_seo_filter_rewrite" resource="default" engine="innodb" comment="Panth SEO Filter URL Rewrites">
+        <column xsi:type="int" name="rewrite_id" unsigned="true" nullable="false" identity="true"/>
+        <column xsi:type="varchar" name="attribute_code" length="255" nullable="false"/>
+        <column xsi:type="int" name="option_id" unsigned="true" nullable="false"/>
+        <column xsi:type="varchar" name="option_label" length="255" nullable="false"/>
+        <column xsi:type="varchar" name="rewrite_slug" length="255" nullable="false"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"/>
+        <column xsi:type="boolean" name="is_active" nullable="false" default="true"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="rewrite_id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="PANTH_SEO_FILTER_REWRITE_UNQ">
+            <column name="attribute_code"/>
+            <column name="option_id"/>
+            <column name="store_id"/>
+        </constraint>
+        <index referenceId="PANTH_SEO_FILTER_REWRITE_IDX_STORE" indexType="btree">
+            <column name="store_id"/>
+        </index>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- panth_seo_category_filter_meta                                 -->
+    <!-- ============================================================ -->
+    <table name="panth_seo_category_filter_meta" resource="default" engine="innodb" comment="Panth SEO Category Filter Meta">
+        <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true"/>
+        <column xsi:type="int" name="category_id" unsigned="true" nullable="false"/>
+        <column xsi:type="varchar" name="attribute_code" length="255" nullable="false"/>
+        <column xsi:type="int" name="option_id" unsigned="true" nullable="false"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false" default="0"/>
+        <column xsi:type="varchar" name="meta_title" length="512" nullable="true"/>
+        <column xsi:type="text" name="meta_description" nullable="true"/>
+        <column xsi:type="varchar" name="meta_keywords" length="512" nullable="true"/>
+        <column xsi:type="int" name="breadcrumbs_priority" unsigned="false" nullable="false" default="0" comment="Breadcrumb priority weight"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="id"/>
+        </constraint>
+        <constraint xsi:type="unique" referenceId="PANTH_SEO_CAT_FILTER_META_UNQ">
+            <column name="category_id"/>
+            <column name="attribute_code"/>
+            <column name="option_id"/>
+            <column name="store_id"/>
+        </constraint>
+    </table>
+
+</schema>
